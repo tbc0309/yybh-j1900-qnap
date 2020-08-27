@@ -1,0 +1,184 @@
+--- a/chkcfgpart.sh
++++ b/chkcfgpart.sh
+@@ -4,7 +4,7 @@
+ # check if the HAL subsystem exist
+ modelname="$(/sbin/getcfg "System" "MODEL" -f /etc/config/uLinux.conf)"
+ if [ -x /sbin/hal_app ]; then
+-    BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++    BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ elif [ "x${BOOT_CONF}" = "xTS-NASARM" ]; then
+ 	BOOT_DEV="/dev/mtdblock"
+ else
+--- a/functions
++++ b/functions
+@@ -24,8 +24,8 @@
+ 	local FLASH_TMP="/flashfs_tmp"
+ # check if the HAL subsystem exist
+ 	if [ -x /sbin/hal_app ]; then
+-		local FLASH_RFS1=$(/sbin/hal_app --get_boot_pd_part port_id=0,obj_index=0)
+-		local FLASH_RFS2=$(/sbin/hal_app --get_boot_pd_part port_id=0,obj_index=1)
++		local FLASH_RFS1=$(/sbin/hal_app1 --get_boot_pd_part port_id=0,obj_index=0)
++		local FLASH_RFS2=$(/sbin/hal_app1 --get_boot_pd_part port_id=0,obj_index=1)
+ 	else
+ 		local BOOT_DEV="/dev/sdx"
+ 	    local FLASH_RFS1=${BOOT_DEV}2
+--- a/init_check.sh
++++ b/init_check.sh
+@@ -31,7 +31,7 @@
+ 
+ extract_qpkg_and_install_avahi()
+ {
+-	FLASH_RFS2=$(/sbin/hal_app --get_boot_pd_part port_id=0,obj_index=0)
++	FLASH_RFS2=$(/sbin/hal_app1 --get_boot_pd_part port_id=0,obj_index=0)
+ 	FLASH_TMP="/flashfs_tmp"
+ 	QPKGTAR="$FLASH_TMP/boot/qpkg.tar"
+ 	[ -d $FLASH_TMP ] || /bin/mkdir $FLASH_TMP
+@@ -63,7 +63,7 @@
+ CONFIG_DEV_FS=`/sbin/getcfg "CONFIG STORAGE" FS_TYPE -f /etc/platform.conf`
+ CUSTOMOUNT="/tmp/.customise"
+ [ -x /sbin/hal_app ] || return 1;
+-BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ [ ! -z ${BOOT_DEV} ] || return 1;
+ 
+ if [ "x$CONFIG_DEV_NODE" != "x" ]; then
+@@ -451,12 +451,8 @@
+ ##########################################################################
+ #extract rootfs2.gz from boot partition
+ /bin/echo 65536 > /proc/sys/kernel/msgmnb
+-if [ "x${Model_Name}" = "xTS-X77" ]; then
+-	/sbin/hal_app --boot > /tmp/dom.conf
+-	/etc/init.d/reset_sata.sh 1>>/dev/kmsg 2>>/dev/kmsg
+-else
+-	/sbin/hal_app --boot
+-fi
++sleep 10
++/sbin/hal_app1 --boot
+ 
+ # usb network card for factory burning used
+ PLATFORM=`/sbin/getcfg "" "Platform" -f /etc/platform.conf`
+@@ -903,7 +899,7 @@
+ 
+ [ -f /bin/md5sum ] || /bin/ln -sf busybox /bin/md5sum
+ 
+-BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ /sbin/setcfg "System" "System Device" ${BOOT_DEV}
+ /sbin/setcfg "System" "System Device" ${BOOT_DEV} -f /etc/default_config/uLinux.conf
+ [ ! -x /etc/init.d/QTSCustomization_init.sh ] || /etc/init.d/QTSCustomization_init.sh start 1>/dev/null 2>/dev/null
+--- a/init_disk.sh
++++ b/init_disk.sh
+@@ -12,7 +12,7 @@
+ FLASH_GPU_DRIVERS_TMP="/flashfs_gpu_tmp"
+ 
+ if [ -x /sbin/hal_app ]; then
+-    BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++    BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+     EXT_ROOT="/dev/md13"
+     FLASH_GPU_DRIVERS=${BOOT_DEV}7
+ elif [ "x${BOOT_CONF}" = "xTS-NASARM" ]; then
+--- a/init_final.sh
++++ b/init_final.sh
+@@ -5,7 +5,7 @@
+ FLASH_TMP="/flashfs_tmp"
+ # check if the HAL subsystem exist
+ if [ -x /sbin/hal_app ]; then
+-    BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++    BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ else
+     BOOT_DEV="/dev/sdx"
+ fi
+--- a/init_nas.sh
++++ b/init_nas.sh
+@@ -8,7 +8,7 @@
+ # check if the HAL subsystem exist
+ modelname="$(/sbin/getcfg "System" "MODEL" -f /etc/config/uLinux.conf)"
+ if [ -x /sbin/hal_app ]; then
+-    BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++    BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ elif [ "x${BOOT_CONF}" = "xTS-NASARM" ]; then
+ 	BOOT_DEV="/dev/mtdblock"
+ else
+--- a/killnas.sh
++++ b/killnas.sh
+@@ -8,7 +8,7 @@
+ #
+ 
+ ECHO=/bin/echo
+-HAL_APP=/sbin/hal_app
++HAL_APP=/sbin/hal_app1
+ BOOT_DEV=""
+ 
+ if [ ! -f ${HAL_APP} ]; then
+--- a/mountall
++++ b/mountall
+@@ -3,8 +3,8 @@
+ 
+ HD_DEVICE="/dev/md13"
+ EXT_MD_NAME="md13"
+-FLASH_RFS1=$(/sbin/hal_app --get_boot_pd_part port_id=0,obj_index=0)
+-FLASH_RFS2=$(/sbin/hal_app --get_boot_pd_part port_id=0,obj_index=1)
++FLASH_RFS1=$(/sbin/hal_app1 --get_boot_pd_part port_id=0,obj_index=0)
++FLASH_RFS2=$(/sbin/hal_app1 --get_boot_pd_part port_id=0,obj_index=1)
+ FLASH_TMP="/flashfs_tmp"
+ MNT_POINT="/mnt/ext"
+ CONFIG_Dev="/dev/md9"
+--- a/shutdown_check.sh
++++ b/shutdown_check.sh
+@@ -2,7 +2,7 @@
+ 
+ # check if the HAL subsystem exist
+ if [ -x /sbin/hal_app ]; then
+-    BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++    BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ else
+     BOOT_DEV="/dev/sdx"
+ fi
+@@ -23,7 +23,7 @@
+         /sbin/insmod /lib/modules/misc/ehci-hcd.ko
+         sleep 3
+         if [ -x /sbin/hal_app ]; then
+-            BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++            BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+         fi
+     fi
+ fi
+--- a/update.sh
++++ b/update.sh
+@@ -733,7 +733,6 @@
+ 			/sbin/ubidetach -m $UPDATE_TMP_PARTITION
+ 		fi
+ 	fi
+-	[ -f ${UPDATE_FOLDER}/update_img.sh ] && /bin/mv ${UPDATE_FOLDER}/update_img.sh /tmp/update_img.sh
+ 
+     if [ -f /etc/IS_TAS ]; then
+ 		[ -n "$(ps -ef|grep zygote |grep -v grep)" ] && { 
+--- a/update_img.sh
++++ b/update_img.sh
+@@ -25,7 +25,7 @@
+ BLOCK_SIZE=512
+ # check if the HAL subsystem exist
+ if [ -x /sbin/hal_app ]; then
+-    BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++    BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+     EXT_ROOT="/dev/md13"
+ else
+     BOOT_DEV="/dev/sdx"
+@@ -100,7 +100,7 @@
+         /sbin/insmod /lib/modules/misc/ehci-hcd.ko
+         sleep 3
+         if [ -x /sbin/hal_app ]; then
+-            BOOT_DEV=$(/sbin/hal_app --get_boot_pd port_id=0)
++            BOOT_DEV=$(/sbin/hal_app1 --get_boot_pd port_id=0)
+         fi
+     fi
+ fi
+@@ -628,7 +628,7 @@
+ #!/bin/sh
+ [ -f "/bin/cmp" ] || /bin/ln -sf /bin/busybox /bin/cmp
+ if [ -x /sbin/hal_app ]; then
+-BOOT_DEV=\$(/sbin/hal_app --get_boot_pd port_id=0)
++BOOT_DEV=\$(/sbin/hal_app1 --get_boot_pd port_id=0)
+ else
+ BOOT_DEV="/dev/sdx"
+ fi
